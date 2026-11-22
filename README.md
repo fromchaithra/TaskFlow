@@ -95,7 +95,7 @@ Recharts, framer-motion, lucide-react.
 
 - Backend: `cd taskflow-backend && mvn clean test` (H2 in-memory test profile;
   Flyway disabled in tests, `ddl-auto: create-drop`). The current suite is
-  335 tests with 0 failures/errors.
+  351 tests with 0 failures/errors.
 - Flyway V1–V7 plus Hibernate `ddl-auto=validate` was verified separately on
   H2 in MySQL mode. Production MySQL/Aiven compatibility has **not** been
   verified in this repository's automated tests.
