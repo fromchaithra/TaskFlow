@@ -2,6 +2,7 @@ package com.taskflow.config;
 
 import com.taskflow.security.CustomUserDetailsService;
 import com.taskflow.security.JwtAuthenticationFilter;
+import com.taskflow.security.RateLimitFilter;
 import com.taskflow.security.RestAccessDeniedHandler;
 import com.taskflow.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
@@ -31,17 +32,20 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
             CustomUserDetailsService userDetailsService,
             RestAuthenticationEntryPoint authenticationEntryPoint,
-            RestAccessDeniedHandler accessDeniedHandler
+            RestAccessDeniedHandler accessDeniedHandler,
+            RateLimitFilter rateLimitFilter
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.userDetailsService = userDetailsService;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -72,6 +76,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

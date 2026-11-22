@@ -1,6 +1,7 @@
 package com.taskflow.security;
 
 import com.taskflow.entity.Organization;
+import com.taskflow.entity.RefreshToken;
 import com.taskflow.entity.Role;
 import com.taskflow.entity.User;
 import com.taskflow.enums.RoleName;
@@ -63,6 +64,9 @@ class AuthFlowIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private JwtService jwtService;
 
     private Organization org;
     private Role adminRole;
@@ -148,6 +152,82 @@ class AuthFlowIntegrationTest {
         mockMvc.perform(get("/api/v1/auth/me")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void replayedRefreshToken_RevokesAllSiblingTokensDurably() throws Exception {
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"admin@taskflow.test","password":"StrongPass123!"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        Cookie firstToken = loginResult.getResponse().getCookie("tf_refresh");
+        assertThat(firstToken).isNotNull();
+
+        MvcResult refreshResult = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "TaskFlow")
+                        .cookie(firstToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        Cookie rotatedToken = refreshResult.getResponse().getCookie("tf_refresh");
+        assertThat(rotatedToken).isNotNull();
+
+        assertThat(refreshTokenRepository.findByTokenHashWithUser(jwtService.sha256Hex(firstToken.getValue())))
+                .get().extracting(RefreshToken::isRevoked).isEqualTo(true);
+        assertThat(refreshTokenRepository.findByTokenHashWithUser(jwtService.sha256Hex(rotatedToken.getValue())))
+                .get().extracting(RefreshToken::isRevoked).isEqualTo(false);
+
+        // Replaying the already-revoked token must be rejected and must revoke the family.
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "TaskFlow")
+                        .cookie(firstToken))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(refreshTokenRepository.findByTokenHashWithUser(jwtService.sha256Hex(rotatedToken.getValue())))
+                .get().extracting(RefreshToken::isRevoked).isEqualTo(true);
+
+        // The sibling token can no longer be used either.
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "TaskFlow")
+                        .cookie(rotatedToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deactivatedUserRefreshRevocation_Persists() throws Exception {
+        User user = new User(
+                org,
+                "EMP-0003",
+                "deactivate@taskflow.test",
+                passwordEncoder.encode("StrongPass123!"),
+                "Deactivate Me",
+                "Developer",
+                adminRole
+        );
+        userRepository.save(user);
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"deactivate@taskflow.test","password":"StrongPass123!"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        Cookie refreshCookie = loginResult.getResponse().getCookie("tf_refresh");
+        assertThat(refreshCookie).isNotNull();
+
+        user.setActive(false);
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "TaskFlow")
+                        .cookie(refreshCookie))
+                .andExpect(status().isForbidden());
+
+        assertThat(refreshTokenRepository.findByTokenHashWithUser(jwtService.sha256Hex(refreshCookie.getValue())))
+                .get().extracting(RefreshToken::isRevoked).isEqualTo(true);
     }
 
     @Test

@@ -212,6 +212,12 @@ public class SprintServiceImpl implements SprintService {
         CustomUserDetails actorDetails = SecurityUtils.currentUser();
         projectSecurityEvaluator.assertCanManageProject(projectId, actorDetails);
 
+        // Serialize activations for the same project: both the "already active" and
+        // overlap checks below must observe a committed ACTIVE sprint from a
+        // concurrent transaction. SELECT ... FOR UPDATE works on H2 and MySQL.
+        projectRepository.findByIdForUpdate(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+
         Sprint sprint = findScopedSprintOrThrow(projectId, sprintId);
         Project project = sprint.getProject();
 

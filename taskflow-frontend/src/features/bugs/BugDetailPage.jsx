@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { ArrowLeft, Clock, Download } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { parseApiError } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatters';
@@ -29,6 +29,7 @@ export function BugDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', description: '', severity: 'MEDIUM', priority: 'MEDIUM', assigneeId: '' });
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -87,6 +88,34 @@ export function BugDetailPage() {
       toast.success(`Status changed to ${status}.`, 'Bug updated');
     } catch (err) {
       toast.error(parseApiError(err).message, 'Update failed');
+    }
+  };
+
+  const handleDownload = async (attachment) => {
+    setDownloadingId(attachment.id);
+    let objectUrl = null;
+    try {
+      const { blob, filename } = await bugService.downloadAttachment(
+        bug.id,
+        attachment.id,
+        attachment.downloadUrl,
+        attachment.originalFilename
+      );
+      objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      toast.success(`Downloaded ${filename}.`, 'Attachment');
+    } catch (err) {
+      toast.error(parseApiError(err).message || 'Unable to download attachment.', 'Download failed');
+    } finally {
+      setDownloadingId(null);
+      // Keep the URL alive briefly so the browser can flush the download.
+      if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
     }
   };
 
@@ -207,14 +236,15 @@ export function BugDetailPage() {
                       <p className="text-sm text-ink truncate">{a.originalFilename}</p>
                       <p className="text-[10px] text-ink-faint">{a.contentType} · {a.fileSizeBytes} bytes</p>
                     </div>
-                    <a
-                      href={a.downloadUrl}
-                      className="text-xs text-brand-600 hover:underline shrink-0"
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(a)}
+                      disabled={downloadingId === a.id}
+                      className="inline-flex items-center gap-1.5 text-xs text-brand-600 hover:underline shrink-0 disabled:opacity-60"
                     >
-                      Download
-                    </a>
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                      {downloadingId === a.id ? 'Downloading…' : 'Download'}
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -18,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DateTimeException;
 import java.time.ZoneId;
+import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class OrganizationServiceImpl implements OrganizationService {
@@ -50,6 +53,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional
     public OrganizationResponse updateCurrentOrganization(UpdateOrganizationRequest request) {
         validateTimezone(request.timezone());
+        String workingDays = validateWorkingDays(request.workingDays());
 
         CustomUserDetails principal = SecurityUtils.currentUser();
         Organization org = organizationRepository.findById(principal.getOrganizationId())
@@ -66,7 +70,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         org.setName(request.name().trim());
         org.setIndustry(request.industry() != null ? request.industry().trim() : null);
         org.setTimezone(request.timezone().trim());
-        org.setWorkingDays(request.workingDays().trim().toUpperCase());
+        org.setWorkingDays(workingDays);
 
         Organization saved = organizationRepository.save(org);
 
@@ -87,5 +91,28 @@ public class OrganizationServiceImpl implements OrganizationService {
         } catch (DateTimeException ex) {
             throw new BusinessRuleException("Invalid IANA timezone: " + timezone);
         }
+    }
+
+    /** Accepts 1-7 distinct weekday tokens in the existing MON,SAT-style wire format. */
+    private String validateWorkingDays(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new BusinessRuleException("Working days must include at least one weekday.");
+        }
+        String normalized = raw.trim().toUpperCase(Locale.ROOT);
+        Set<String> allowed = Set.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN");
+        Set<String> seen = new LinkedHashSet<>();
+        for (String token : normalized.split(",", -1)) {
+            String day = token.trim();
+            if (!allowed.contains(day)) {
+                throw new BusinessRuleException("Invalid working day: " + day);
+            }
+            if (!seen.add(day)) {
+                throw new BusinessRuleException("Duplicate working day: " + day);
+            }
+        }
+        if (seen.isEmpty()) {
+            throw new BusinessRuleException("Working days must include at least one weekday.");
+        }
+        return String.join(",", seen);
     }
 }

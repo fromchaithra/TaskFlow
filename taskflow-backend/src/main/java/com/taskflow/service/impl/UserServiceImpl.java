@@ -248,6 +248,11 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse updateUserStatus(Long userId, UpdateUserStatusRequest request) {
         CustomUserDetails actorDetails = SecurityUtils.currentUser();
+        // Defence in depth: the controller already requires ADMIN, but internal callers must not
+        // be able to bypass the role check by invoking the service directly.
+        if (!actorDetails.isAdmin()) {
+            throw new UnauthorizedResourceAccessException("Only administrators can change user status.");
+        }
         if (actorDetails.getId().equals(userId) && Boolean.FALSE.equals(request.active())) {
             throw new BusinessRuleException("You cannot deactivate your own administrator account.");
         }
@@ -288,6 +293,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse updateUserRole(Long userId, UpdateUserRoleRequest request) {
         CustomUserDetails actorDetails = SecurityUtils.currentUser();
+        if (!actorDetails.isAdmin()) {
+            throw new UnauthorizedResourceAccessException("Only administrators can change user roles.");
+        }
         User target = findOrgUserOrThrow(userId, actorDetails.getOrganizationId());
         RoleName currentRole = target.getPrimaryRoleName();
         RoleName nextRoleName = request.roleName();

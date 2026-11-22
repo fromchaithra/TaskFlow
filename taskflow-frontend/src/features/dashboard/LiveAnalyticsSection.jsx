@@ -366,6 +366,11 @@ export function LiveAnalyticsSection() {
   const { snapshot, status, lastUpdated, error, refreshing, manualRefresh } =
     useLiveAnalytics(filters, Boolean(isAuthenticated), identityKey);
 
+  // Project options and filters are account/organization scoped: reset both when identity changes.
+  useEffect(() => {
+    setFilters(defaultFilters());
+  }, [identityKey]);
+
   useEffect(() => {
     let active = true;
     projectService.listProjects({ size: 100 })
@@ -377,7 +382,7 @@ export function LiveAnalyticsSection() {
         if (active) setProjects([]);
       });
     return () => { active = false; };
-  }, []);
+  }, [identityKey]);
 
   const statusMeta = STATUS_META[status] || STATUS_META[LIVE_STATUS.CONNECTING];
   const offline = OFFLINE_STATUSES.has(status);

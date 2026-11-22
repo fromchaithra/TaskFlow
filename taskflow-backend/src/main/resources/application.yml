@@ -81,3 +81,10 @@ taskflow:
     max-rows-per-sheet: ${REPORT_MAX_ROWS:20000}
     max-kpis-per-report: ${REPORT_MAX_KPIS:50}
     max-pdf-pages: ${REPORT_MAX_PDF_PAGES:50}
+  rate-limit:
+    login-per-ip-limit: ${RATE_LIMIT_LOGIN_PER_IP:100}
+    login-failures-per-account-limit: ${RATE_LIMIT_LOGIN_FAILURES_PER_ACCOUNT:5}
+    refresh-per-ip-limit: ${RATE_LIMIT_REFRESH_PER_IP:100}
+    activation-per-ip-limit: ${RATE_LIMIT_ACTIVATION_PER_IP:50}
+    registration-per-ip-limit: ${RATE_LIMIT_REGISTRATION_PER_IP:50}
+    window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:300}

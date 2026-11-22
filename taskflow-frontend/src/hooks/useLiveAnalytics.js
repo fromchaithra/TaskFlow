@@ -77,12 +77,18 @@ export function useLiveAnalytics(filters = {}, isAuthenticated = true, identityK
     clearTimer(recoveryRef);
   }, [stopStream, stopPolling]);
 
-  const applySnapshot = useCallback((payload) => {
+  const applySnapshot = useCallback((payload, fromPolling = false) => {
     if (!aliveRef.current || !payload) return;
     setSnapshot(payload);
     setLastUpdated(Date.now());
     setError(null);
     failuresRef.current = 0;
+    if (fromPolling) {
+      // A successful poll must not cancel the fallback loop or SSE recovery timer;
+      // otherwise the badge claims "Live" while the snapshot is frozen.
+      setStatus(LIVE_STATUS.POLLING);
+      return;
+    }
     stopPolling();
     clearTimer(recoveryRef);
     setStatus(LIVE_STATUS.LIVE);
@@ -91,7 +97,7 @@ export function useLiveAnalytics(filters = {}, isAuthenticated = true, identityK
   const pollOnce = useCallback(async () => {
     try {
       const payload = await fetchSnapshot(filtersRef.current);
-      applySnapshot(payload);
+      applySnapshot(payload, true);
       if (pollingRef.current) setStatus(LIVE_STATUS.POLLING);
     } catch (err) {
       if (!aliveRef.current) return;
@@ -116,6 +122,9 @@ export function useLiveAnalytics(filters = {}, isAuthenticated = true, identityK
     stopStream();
     clearTimer(retryRef);
     clearTimer(recoveryRef);
+    // Captured before any await so a generation change during refresh cannot
+    // let a stale connect() open an untracked SSE stream.
+    const generation = generationRef.current;
 
     // Rotate the access token before opening a long-lived stream so it cannot
     // expire mid-connection. Uses the shared single-flight refresh.
@@ -133,9 +142,8 @@ export function useLiveAnalytics(filters = {}, isAuthenticated = true, identityK
         return;
       }
     }
-    if (!aliveRef.current || !tokenManager.hasToken()) return;
+    if (!aliveRef.current || generation !== generationRef.current || !tokenManager.hasToken()) return;
 
-    const generation = generationRef.current;
     setStatus(failuresRef.current > 0 ? LIVE_STATUS.RECONNECTING : LIVE_STATUS.CONNECTING);
 
     cleanupRef.current = openLiveStream({
@@ -149,9 +157,11 @@ export function useLiveAnalytics(filters = {}, isAuthenticated = true, identityK
         }
 
         if (reason === 'unauthorized') {
-          // apiClient's session-expired callback already cleared auth state;
-          // the identity effect below removes any stale snapshot.
-          setError('Session expired. Reconnecting after sign-in.');
+          // A failed direct refresh does not go through apiClient's session-expired
+          // callback, so drop potentially stale data from the previous account.
+          setSnapshot(null);
+          setLastUpdated(null);
+          setError('Session expired. Sign in again to resume live updates.');
           setStatus(LIVE_STATUS.ERROR);
           return;
         }
@@ -190,7 +200,7 @@ export function useLiveAnalytics(filters = {}, isAuthenticated = true, identityK
     setRefreshing(true);
     try {
       const payload = await fetchSnapshot(filtersRef.current);
-      applySnapshot(payload);
+      applySnapshot(payload, pollingRef.current);
     } catch (err) {
       if (aliveRef.current) {
         setError(parseApiError(err).message);

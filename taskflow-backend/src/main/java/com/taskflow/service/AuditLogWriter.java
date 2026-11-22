@@ -17,4 +17,13 @@ public interface AuditLogWriter {
             Object previousValue,
             Object newValue
     );
+
+    /** Isolated audit write for authentication events; failures never break auth. */
+    void safeRecord(
+            Organization organization,
+            User actor,
+            AuditAction action,
+            Long entityId,
+            Object newValue
+    );
 }

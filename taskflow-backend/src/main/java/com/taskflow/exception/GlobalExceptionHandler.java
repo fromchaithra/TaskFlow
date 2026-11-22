@@ -126,7 +126,8 @@ public class GlobalExceptionHandler {
             DataIntegrityViolationException ex,
             HttpServletRequest request
     ) {
-        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        log.warn("Data integrity violation at {}: {}", request.getRequestURI(),
+                ex.getMostSpecificCause().getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiErrorResponse.of(409, "DATA_INTEGRITY_VIOLATION",
                         "The operation conflicts with existing database constraints.", request.getRequestURI()));

@@ -49,7 +49,9 @@ public class BugAttachmentController {
     }
 
     @DeleteMapping("/{attachmentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'QA_TESTER')")
+    // The service layer decides uploader/manager permissions; DEVELOPER must be allowed
+    // through here so the actual uploader can remove their own attachment.
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'QA_TESTER', 'DEVELOPER')")
     public ResponseEntity<Void> delete(@PathVariable Long id, @PathVariable Long attachmentId) {
         bugAttachmentService.delete(id, attachmentId);
         return ResponseEntity.noContent().build();

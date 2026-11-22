@@ -181,6 +181,7 @@ class SprintServiceImplTest {
     void startSprint_WhenAlreadyCompletedOrCancelled_ShouldThrowInvalidWorkflowTransition() {
         Sprint cancelledSprint = buildSprint(300L, projectA, "Sprint X", SprintStatus.CANCELLED);
         when(projectRepository.findById(100L)).thenReturn(Optional.of(projectA));
+        when(projectRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(projectA));
         when(sprintRepository.findByIdAndProjectId(300L, 100L)).thenReturn(Optional.of(cancelledSprint));
 
         assertThatThrownBy(() -> sprintService.startSprint(100L, 300L))
@@ -192,6 +193,7 @@ class SprintServiceImplTest {
     void startSprint_WhenAnotherActiveSprintExists_ShouldThrowBusinessRuleException() {
         Sprint plannedSprint = buildSprint(301L, projectA, "Sprint 2", SprintStatus.PLANNED);
         when(projectRepository.findById(100L)).thenReturn(Optional.of(projectA));
+        when(projectRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(projectA));
         when(sprintRepository.findByIdAndProjectId(301L, 100L)).thenReturn(Optional.of(plannedSprint));
         when(sprintRepository.existsByProjectIdAndStatusAndIdNot(100L, SprintStatus.ACTIVE, 301L)).thenReturn(true);
 

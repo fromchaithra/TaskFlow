@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -114,11 +115,20 @@ public class TestRunServiceImpl implements TestRunService {
         return TestRunResponse.from(run);
     }
 
+    private TestRunStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) return null;
+        try {
+            return TestRunStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new com.taskflow.exception.BusinessRuleException("Invalid test run status.");
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public PagedResponse<TestRunResponse> list(Long projectId, String status, Long assignedToId, Pageable pageable) {
         var actor = SecurityUtils.currentUser();
-        TestRunStatus s = (status == null || status.isBlank()) ? null : TestRunStatus.valueOf(status);
+        TestRunStatus s = parseStatus(status);
         Page<TestRun> page = runRepository.searchTestRuns(actor.getOrganizationId(), projectId, s, assignedToId, pageable);
         return PagedResponse.from(page.map(TestRunResponse::from));
     }
@@ -144,7 +154,10 @@ public class TestRunServiceImpl implements TestRunService {
         if (!run.getOrganization().getId().equals(actor.getOrganizationId())) {
             throw new com.taskflow.exception.ResourceNotFoundException("Test run not found: " + id);
         }
-        TestRunStatus newStatus = TestRunStatus.valueOf(status);
+        // Organization membership alone is not enough for a mutation: QA/PM users
+        // must also be able to view the run's project (admin passes this check).
+        projectSecurityEvaluator.assertCanViewProject(run.getProject().getId(), actor);
+        TestRunStatus newStatus = parseStatus(status);
         run.setStatus(newStatus);
         if (newStatus == TestRunStatus.IN_PROGRESS && run.getStartedAt() == null) {
             run.setStartedAt(Instant.now());

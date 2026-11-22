@@ -107,7 +107,7 @@ public class AnalyticsAuthorizationServiceImpl implements AnalyticsAuthorization
             Team team = teamRepository.findById(teamId)
                     .orElseThrow(() -> new ResourceNotFoundException("Team not found: " + teamId));
             if (!team.getOrganization().getId().equals(organizationId)) {
-                throw new UnauthorizedResourceAccessException("You do not have access to team " + teamId);
+                throw new UnauthorizedResourceAccessException("You do not have access to this team.");
             }
         }
         return Set.copyOf(teamIds);
@@ -118,7 +118,7 @@ public class AnalyticsAuthorizationServiceImpl implements AnalyticsAuthorization
             User employee = userRepository.findById(employeeId)
                     .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeId));
             if (!employee.getOrganization().getId().equals(organizationId)) {
-                throw new UnauthorizedResourceAccessException("You do not have access to employee " + employeeId);
+                throw new UnauthorizedResourceAccessException("You do not have access to this employee.");
             }
         }
         return Set.copyOf(employeeIds);

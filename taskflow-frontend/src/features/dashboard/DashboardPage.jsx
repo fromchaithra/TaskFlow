@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   Bug,
@@ -213,9 +213,8 @@ function WorkspaceModules({ modules }) {
 }
 
 export function DashboardPage() {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, refreshCurrentUser } = useAuth();
   const toast = useToast();
-  const outletContext = useOutletContext() || {};
   const [syncing, setSyncing] = useState(false);
   const [stats, setStats] = useState(null);
   const [activity, setActivity] = useState([]);
@@ -236,8 +235,8 @@ export function DashboardPage() {
   const handleVerifySession = async () => {
     setSyncing(true);
     try {
-      await (outletContext.openProfile ? Promise.resolve() : Promise.resolve());
-      toast.success('Session verified.', 'Workspace');
+      await refreshCurrentUser();
+      toast.success('Profile and session refreshed.', 'Workspace');
     } catch (err) {
       toast.error(parseApiError(err).message, 'Verification failed');
     } finally {

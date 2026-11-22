@@ -2,6 +2,7 @@ package com.taskflow.repository;
 
 import com.taskflow.dto.analytics.projections.QaResultProjection;
 import com.taskflow.dto.analytics.projections.QaRunResultProjection;
+import com.taskflow.dto.analytics.projections.StringKeyCountProjection;
 import com.taskflow.entity.TestExecution;
 import com.taskflow.enums.TestExecutionResult;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -60,16 +61,28 @@ public interface TestExecutionRepository extends JpaRepository<TestExecution, Lo
     );
 
     @Query("""
-            SELECT COUNT(te) FROM TestExecution te
+            SELECT new com.taskflow.dto.analytics.projections.StringKeyCountProjection(CAST(te.result AS string), COUNT(te))
+            FROM TestExecution te
             WHERE te.run.project.organization.id = :orgId
-              AND te.run.project.id IN :projectIds
+            GROUP BY te.result
+            """)
+    List<StringKeyCountProjection> countDashboardExecutionsByResult(@Param("orgId") Long organizationId);
+
+    @Query("""
+            SELECT COUNT(te) FROM TestExecution te JOIN te.run tr
+            WHERE tr.project.organization.id = :orgId
+              AND tr.project.id IN :projectIds
               AND te.result = com.taskflow.enums.TestExecutionResult.FAIL
               AND te.bug IS NOT NULL
+              AND ( (te.executedAt IS NOT NULL AND te.executedAt >= :from AND te.executedAt < :toExclusive)
+                 OR (te.executedAt IS NULL AND tr.createdAt >= :from AND tr.createdAt < :toExclusive) )
               AND (:applyUserFilter = false OR te.executedBy.id IN :userIds)
             """)
     long countAnalyticsDefectLinkedFailures(
             @Param("orgId") Long organizationId,
             @Param("projectIds") Collection<Long> projectIds,
+            @Param("from") Instant from,
+            @Param("toExclusive") Instant toExclusive,
             @Param("applyUserFilter") Boolean applyUserFilter,
             @Param("userIds") Collection<Long> userIds
     );

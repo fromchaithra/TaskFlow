@@ -68,6 +68,11 @@ Recharts, framer-motion, lucide-react.
      `STORAGE_MAX_FILE_SIZE_BYTES`
    - Reports: `REPORT_MAX_BUCKETS`, `REPORT_MAX_ROWS`, `REPORT_MAX_KPIS`,
      `REPORT_MAX_PDF_PAGES`
+   - Rate limits: `RATE_LIMIT_LOGIN_PER_IP`,
+     `RATE_LIMIT_LOGIN_FAILURES_PER_ACCOUNT`, `RATE_LIMIT_REFRESH_PER_IP`,
+     `RATE_LIMIT_ACTIVATION_PER_IP`, `RATE_LIMIT_REGISTRATION_PER_IP`,
+     `RATE_LIMIT_WINDOW_SECONDS` (in-process store; use a shared store for
+     multi-instance deployments)
 3. Run:
    ```
    cd taskflow-backend
@@ -95,7 +100,7 @@ Recharts, framer-motion, lucide-react.
 
 - Backend: `cd taskflow-backend && mvn clean test` (H2 in-memory test profile;
   Flyway disabled in tests, `ddl-auto: create-drop`). The current suite is
-  351 tests with 0 failures/errors.
+  420 tests with 0 failures/errors.
 - Flyway V1–V7 plus Hibernate `ddl-auto=validate` was verified separately on
   H2 in MySQL mode. Production MySQL/Aiven compatibility has **not** been
   verified in this repository's automated tests.

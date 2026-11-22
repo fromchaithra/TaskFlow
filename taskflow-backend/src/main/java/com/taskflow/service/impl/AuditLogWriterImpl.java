@@ -79,6 +79,21 @@ public class AuditLogWriterImpl implements AuditLogWriter {
         ));
     }
 
+    /**
+     * Authentication audit must be independent of the auth transaction: a failure here
+     * must never roll back a login, refresh rotation, revocation or activation.
+     */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void safeRecord(Organization organization, User actor, AuditAction action,
+                           Long entityId, Object newValue) {
+        try {
+            record(organization, actor, null, action, "AUTH", entityId, null, newValue);
+        } catch (RuntimeException ex) {
+            log.warn("Authentication audit event {} could not be persisted: {}", action, ex.getMessage());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> toJsonMap(Object value) {
         if (value == null) {

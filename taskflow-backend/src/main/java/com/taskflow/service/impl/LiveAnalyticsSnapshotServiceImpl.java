@@ -84,6 +84,10 @@ public class LiveAnalyticsSnapshotServiceImpl implements LiveAnalyticsSnapshotSe
     private CachedTrend cachedTrend(AnalyticsQuery query, CustomUserDetails principal) {
         TrendKey key = TrendKey.of(principal, query);
         long now = System.currentTimeMillis();
+        // Keys include viewer + every filter; evict expired entries so the cache cannot grow forever.
+        if (trendCache.size() > 256) {
+            trendCache.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= now);
+        }
         CachedTrend existing = trendCache.get(key);
         if (existing != null && existing.expiresAt() > now) {
             return existing;

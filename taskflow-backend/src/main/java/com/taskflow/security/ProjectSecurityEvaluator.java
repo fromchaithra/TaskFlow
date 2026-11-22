@@ -83,7 +83,7 @@ public class ProjectSecurityEvaluator {
         boolean allowed = project.getManager().getId().equals(user.getId())
                 || projectMemberRepository.existsByProjectIdAndUserId(projectId, user.getId());
         if (!allowed) {
-            throw new UnauthorizedResourceAccessException("You are not a member of project " + project.getProjectKey());
+            throw new UnauthorizedResourceAccessException("Project membership is required.");
         }
     }
 
@@ -113,7 +113,7 @@ public class ProjectSecurityEvaluator {
         boolean member = project.getManager().getId().equals(user.getId())
                 || projectMemberRepository.existsByProjectIdAndUserId(projectId, user.getId());
         if (!member) {
-            throw new UnauthorizedResourceAccessException("Project membership is required for project " + project.getProjectKey());
+            throw new UnauthorizedResourceAccessException("Project membership is required.");
         }
     }
 

@@ -116,14 +116,13 @@ public class DashboardServiceImpl implements DashboardService {
                 + testRunRepository.searchTestRuns(orgId, null, com.taskflow.enums.TestRunStatus.IN_PROGRESS, null, org.springframework.data.domain.PageRequest.of(0, 1)).getTotalElements();
 
         long passedExecutions = 0, failedExecutions = 0, blockedExecutions = 0;
-        for (com.taskflow.entity.TestExecution te : testExecutionRepository.findAll()) {
-            if (te.getRun() != null && te.getRun().getOrganization().getId().equals(orgId)) {
-                switch (te.getResult()) {
-                    case PASS -> passedExecutions++;
-                    case FAIL -> failedExecutions++;
-                    case BLOCKED -> blockedExecutions++;
-                    default -> {}
-                }
+        // Organization-scoped aggregate query instead of loading every execution of every tenant.
+        for (var row : testExecutionRepository.countDashboardExecutionsByResult(orgId)) {
+            switch (row.key()) {
+                case "PASS" -> passedExecutions += row.count();
+                case "FAIL" -> failedExecutions += row.count();
+                case "BLOCKED" -> blockedExecutions += row.count();
+                default -> {}
             }
         }
 

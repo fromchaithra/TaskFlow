@@ -5,6 +5,7 @@ import com.taskflow.dto.auth.ActivateAccountRequest;
 import com.taskflow.dto.auth.ActivationTokenValidationResponse;
 import com.taskflow.dto.auth.AuthResult;
 import com.taskflow.entity.ActivationToken;
+import com.taskflow.entity.Organization;
 import com.taskflow.repository.ActivationTokenRepository;
 import com.taskflow.util.TokenHasher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,6 +14,7 @@ import com.taskflow.dto.auth.LoginRequest;
 import com.taskflow.entity.RefreshToken;
 import com.taskflow.entity.RevokedToken;
 import com.taskflow.entity.User;
+import com.taskflow.enums.AuditAction;
 import com.taskflow.exception.ResourceNotFoundException;
 import com.taskflow.repository.RefreshTokenRepository;
 import com.taskflow.repository.RevokedTokenRepository;
@@ -20,24 +22,31 @@ import com.taskflow.repository.TeamMemberRepository;
 import com.taskflow.repository.UserRepository;
 import com.taskflow.security.CustomUserDetails;
 import com.taskflow.security.JwtService;
+import com.taskflow.service.AuditLogWriter;
 import com.taskflow.service.AuthService;
 import com.taskflow.service.LiveSubscriptionRegistry;
 import com.taskflow.util.SecurityUtils;
 import io.jsonwebtoken.Claims;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.jsonwebtoken.JwtException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -48,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final LiveSubscriptionRegistry liveSubscriptions;
+    private final AuditLogWriter auditLogWriter;
 
     public AuthServiceImpl(
             AuthenticationManager authenticationManager,
@@ -58,7 +68,8 @@ public class AuthServiceImpl implements AuthService {
             TeamMemberRepository teamMemberRepository,
             JwtService jwtService,
             PasswordEncoder passwordEncoder,
-            LiveSubscriptionRegistry liveSubscriptions
+            LiveSubscriptionRegistry liveSubscriptions,
+            AuditLogWriter auditLogWriter
     ) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
@@ -69,23 +80,36 @@ public class AuthServiceImpl implements AuthService {
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.liveSubscriptions = liveSubscriptions;
+        this.auditLogWriter = auditLogWriter;
     }
 
     @Override
     @Transactional
     public AuthResult login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email().trim().toLowerCase(), request.password())
-        );
+        String email = request.email() == null ? "" : request.email().trim().toLowerCase();
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.password())
+            );
+        } catch (AuthenticationException ex) {
+            auditAuthenticationFailure(email,
+                    ex instanceof DisabledException ? AuditAction.ACCOUNT_DEACTIVATED : AuditAction.LOGIN_FAILURE);
+            throw ex;
+        }
 
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!user.isActive()) {
+            safeAudit(user.getOrganization(), user, AuditAction.ACCOUNT_DEACTIVATED,
+                    user.getId(), Map.of("method", "PASSWORD"));
             throw new DisabledException("Account is deactivated");
         }
 
+        safeAudit(user.getOrganization(), user, AuditAction.LOGIN_SUCCESS,
+                user.getId(), Map.of("method", "PASSWORD"));
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
@@ -101,7 +125,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    // Revocation performed on replay / deactivation must survive the authentication
+    // exception that immediately follows; otherwise the transaction rolls it back.
+    @Transactional(noRollbackFor = {BadCredentialsException.class, DisabledException.class})
     public AuthResult refresh(String rawRefreshToken) {
         if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
             throw new BadCredentialsException("Refresh token missing");
@@ -112,12 +138,18 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
 
         if (existing.isRevoked() || existing.isExpired()) {
-            refreshTokenRepository.revokeAllActiveForUser(existing.getUser().getId());
+            User replayUser = existing.getUser();
+            safeAudit(replayUser.getOrganization(), replayUser,
+                    AuditAction.REFRESH_TOKEN_REUSE, replayUser.getId(),
+                    Map.of("reason", existing.isRevoked() ? "REVOKED" : "EXPIRED"));
+            refreshTokenRepository.revokeAllActiveForUser(replayUser.getId());
             throw new BadCredentialsException("Refresh token expired or revoked");
         }
 
         User user = existing.getUser();
         if (!user.isActive()) {
+            safeAudit(user.getOrganization(), user, AuditAction.ACCOUNT_DEACTIVATED,
+                    user.getId(), Map.of("method", "REFRESH_TOKEN"));
             existing.revoke();
             refreshTokenRepository.save(existing);
             throw new DisabledException("Account is deactivated");
@@ -171,6 +203,8 @@ public class AuthServiceImpl implements AuthService {
         if (user.isActive()) {
             throw new BadCredentialsException("Account is already activated");
         }
+        safeAudit(user.getOrganization(), user, AuditAction.ACCOUNT_ACTIVATED,
+                user.getId(), Map.of("method", "ACTIVATION_TOKEN"));
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setActive(true);
         userRepository.save(user);
@@ -222,6 +256,28 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return toAuthUserDto(user);
+    }
+
+    /** Audit must never break an authentication flow, even if the writer bean fails outright. */
+    private void safeAudit(Organization organization, User actor, AuditAction action,
+                           Long entityId, Object newValue) {
+        try {
+            auditLogWriter.safeRecord(organization, actor, action, entityId, newValue);
+        } catch (RuntimeException ex) {
+            log.warn("Authentication audit event {} was skipped: {}", action, ex.getMessage());
+        }
+    }
+
+    /** Unknown emails have no organization, which audit rows require; skip those events. */
+    private void auditAuthenticationFailure(String email, AuditAction action) {
+        if (email == null || email.isBlank()) return;
+        try {
+            userRepository.findByEmailIgnoreCase(email).ifPresent(user ->
+                    safeAudit(user.getOrganization(), user, action,
+                            user.getId(), Map.of("method", "PASSWORD")));
+        } catch (RuntimeException ex) {
+            log.warn("Authentication audit lookup for {} was skipped: {}", action, ex.getMessage());
+        }
     }
 
     private String issueAndPersistRefreshToken(User user) {

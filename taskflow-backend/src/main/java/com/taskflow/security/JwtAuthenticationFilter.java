@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -78,8 +79,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (JwtException | IllegalArgumentException ex) {
-            log.debug("JWT validation failed: {}", ex.getMessage());
+        } catch (JwtException | IllegalArgumentException | AuthenticationException | IllegalStateException ex) {
+            // Includes UsernameNotFoundException for a deleted user and IllegalStateException for
+            // a corrupt/unavailable principal. Leave the context empty so the standard entry point
+            // returns 401 without leaking account existence or internal details.
+            log.debug("JWT authentication rejected: {}", ex.getClass().getSimpleName());
             SecurityContextHolder.clearContext();
         }
 

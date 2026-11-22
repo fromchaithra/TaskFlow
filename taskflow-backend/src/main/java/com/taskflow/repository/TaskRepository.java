@@ -96,7 +96,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     long countOverdueByProjectId(@Param("projectId") Long projectId, @Param("today") LocalDate today);
 
     @Query("""
-            SELECT COUNT(t) FROM Task t
+            SELECT COUNT(DISTINCT t) FROM Task t
             LEFT JOIN ProjectMember pm ON pm.project.id = t.project.id
             WHERE t.project.organization.id = :orgId
               AND (:isAdmin = true OR t.project.manager.id = :viewerId OR pm.user.id = :viewerId)
@@ -223,6 +223,21 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             @Param("orgId") Long organizationId,
             @Param("userIds") Collection<Long> userIds,
             @Param("today") LocalDate today
+    );
+
+    @Query("""
+            SELECT new com.taskflow.dto.analytics.projections.WorkloadProjection(
+                t.assignee.id, CAST(t.status AS string), COUNT(t), SUM(t.estimatedHours))
+            FROM Task t
+            WHERE t.project.organization.id = :orgId
+              AND t.project.id IN :projectIds
+              AND t.assignee.id IN :userIds
+            GROUP BY t.assignee.id, t.status
+            """)
+    List<WorkloadProjection> findAnalyticsWorkloadInProjects(
+            @Param("orgId") Long organizationId,
+            @Param("projectIds") Collection<Long> projectIds,
+            @Param("userIds") Collection<Long> userIds
     );
 
     @Query("""

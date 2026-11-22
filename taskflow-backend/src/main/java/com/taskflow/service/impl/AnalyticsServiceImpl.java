@@ -681,12 +681,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         Map<Long, Map<TaskStatus, Long>> tasksByUser = new HashMap<>();
         Map<Long, Long> overdueByUser = new HashMap<>();
         if (!allUserIds.isEmpty()) {
-            for (TaskStatusCountProjection row : taskRepository.countAnalyticsTasksByAssigneeAndStatus(
-                    ctx.scope.organizationId(), allUserIds)) {
+            for (TaskStatusCountProjection row : taskRepository.countAnalyticsTasksByAssigneeAndStatusInProjects(
+                    ctx.scope.organizationId(), ctx.projectIds(), allUserIds)) {
                 tasksByUser.computeIfAbsent(row.key(), k -> new HashMap<>()).put(TaskStatus.valueOf(row.status()), row.count());
             }
-            for (CountByKeyProjection row : taskRepository.countAnalyticsOverdueTasksByAssignee(
-                    ctx.scope.organizationId(), allUserIds, LocalDate.now())) {
+            for (CountByKeyProjection row : taskRepository.countAnalyticsOverdueTasksByAssigneeInProjects(
+                    ctx.scope.organizationId(), ctx.projectIds(), allUserIds, LocalDate.now())) {
                 overdueByUser.put(row.key(), row.count());
             }
         }
@@ -737,8 +737,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if (users.isEmpty()) {
             return new EmployeeWorkloadResponse(meta, List.of(), DataAvailability.NO_DATA_IN_RANGE);
         }
-        Map<Long, List<WorkloadProjection>> workloadRows = taskRepository.findAnalyticsWorkload(
-                ctx.scope.organizationId(), users.stream().map(User::getId).toList()).stream()
+        Map<Long, List<WorkloadProjection>> workloadRows = taskRepository.findAnalyticsWorkloadInProjects(
+                ctx.scope.organizationId(), ctx.projectIds(), users.stream().map(User::getId).toList()).stream()
                 .collect(Collectors.groupingBy(WorkloadProjection::userId));
 
         List<EmployeeWorkloadResponse.EmployeeWorkloadRow> rows = new ArrayList<>();
@@ -1067,7 +1067,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             previousCounts.merge(TestExecutionResult.valueOf(row.result()), 1L, Long::sum);
         }
         long defectLinked = testExecutionRepository.countAnalyticsDefectLinkedFailures(
-                ctx.scope.organizationId(), ctx.projectIds(), ctx.applyUserFilter(), ctx.userIds());
+                ctx.scope.organizationId(), ctx.projectIds(), ctx.fromInstant(), ctx.toExclusive(),
+                ctx.applyUserFilter(), ctx.userIds());
         return new QaSummary(counts, previousCounts, current.size(),
                 counts.getOrDefault(TestExecutionResult.PASS, 0L),
                 counts.getOrDefault(TestExecutionResult.FAIL, 0L),
