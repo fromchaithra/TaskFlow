@@ -1,0 +1,39 @@
+spring:
+  # Local, untracked .env (properties syntax) is imported ONLY for the dev profile.
+  # The prod profile never loads it, so localhost/PREFERRED dev values cannot leak.
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:./taskflow-backend/.env[.properties]
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    root: INFO
+    com.taskflow: DEBUG
+    org.springframework.security: INFO
+    org.flywaydb: INFO
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+
+# Development-only sample employees (EMP-0002 .. EMP-0006).
+# Bound only when the "dev" profile is active, so production never sees these values.
+taskflow:
+  dev-seed:
+    enabled: ${DEV_SEED_ENABLED:true}
+    # Supplied through the environment (or the local, untracked .env file).
+    # When empty, seeding is skipped instead of falling back to a committed password.
+    password: ${DEV_SEED_PASSWORD:}
+  demo-seed:
+    enabled: ${DEV_DEMO_SEED_ENABLED:true}

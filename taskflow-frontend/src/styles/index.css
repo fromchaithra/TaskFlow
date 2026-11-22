@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   TaskFlow light design system
+   Brand: teal #0F9D8A on white / #F1F5F4 surfaces with ink #202B35 text.
+   ========================================================================== */
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Surfaces */
+  --color-canvas: #ffffff;
+  --color-subtle: #f1f5f4;
+  --color-surface: #ffffff;
+
+  /* Typography */
+  --color-ink: #202b35;
+  --color-ink-muted: #566571;
+  --color-ink-faint: #7d8b97;
+
+  /* Hairlines */
+  --color-line: #e4eae8;
+  --color-line-strong: #cbd6d2;
+
+  /* Primary teal scale */
+  --color-brand-50: #eaf6f3;
+  --color-brand-100: #cdece5;
+  --color-brand-200: #a3ded3;
+  --color-brand-300: #6cc9bb;
+  --color-brand-400: #33ada0;
+  --color-brand-500: #0f9d8a;
+  --color-brand-600: #0c8574;
+  --color-brand-700: #0a6c5f;
+  --color-brand-800: #0a564c;
+  --color-brand-900: #094840;
+
+  /* Solid action colors stay constant in both themes so white button text
+     always has sufficient contrast. */
+  --color-brand-solid: #0f9d8a;
+  --color-brand-solid-hover: #0c8574;
+  --color-brand-solid-active: #0a6c5f;
+  --color-danger-solid: #dc2626;
+  --color-danger-solid-hover: #b91c1c;
+  --color-danger-solid-active: #991b1b;
+
+  /* Chart surfaces and series */
+  --color-chart-grid: #e4eae8;
+  --color-chart-axis: #566571;
+  --color-chart-tooltip: #ffffff;
+  --color-chart-1: #0f9d8a;
+  --color-chart-2: #388bd0;
+  --color-chart-3: #2ea076;
+  --color-chart-4: #d6992e;
+  --color-chart-5: #c84e4a;
+  --color-chart-6: #788c98;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px 0 rgb(16 42 37 / 0.04), 0 1px 3px 0 rgb(16 42 37 / 0.06);
+  --shadow-card-hover: 0 6px 16px -6px rgb(16 42 37 / 0.14), 0 2px 6px -2px rgb(16 42 37 / 0.06);
+  --shadow-overlay: 0 24px 48px -24px rgb(16 42 37 / 0.28), 0 10px 24px -16px rgb(16 42 37 / 0.18);
+}
+
+/* ==========================================================================
+   Dark design system. Only the shared tokens are re-declared: every component
+   (cards, tables, forms, modals, charts, badges) keeps its single markup and
+   follows these variables automatically.
+   ========================================================================== */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-canvas: #0d1519;
+  --color-subtle: #162228;
+  --color-surface: #19272e;
+  --color-ink: #e8f0f2;
+  --color-ink-muted: #aec0c9;
+  --color-ink-faint: #8197a2;
+  --color-line: #263941;
+  --color-line-strong: #38505a;
+
+  --color-brand-50: #102f2a;
+  --color-brand-100: #16453d;
+  --color-brand-200: #1c5b4f;
+  --color-brand-300: #2a7f6e;
+  --color-brand-400: #3ba491;
+  --color-brand-500: #4ec0ab;
+  --color-brand-600: #74d8c5;
+  --color-brand-700: #9be9d9;
+  --color-brand-800: #c4f5ea;
+  --color-brand-900: #e2fbf5;
+
+  /* Status tints become translucent dark surfaces; foregrounds lighten. */
+  --color-red-50: rgb(127 29 29 / 0.28);
+  --color-red-100: rgb(127 29 29 / 0.4);
+  --color-red-200: rgb(153 27 27 / 0.5);
+  --color-red-500: #f87171;
+  --color-red-600: #fca5a5;
+  --color-red-700: #fecaca;
+  --color-red-800: #fee2e2;
+
+  --color-amber-50: rgb(120 53 15 / 0.3);
+  --color-amber-100: rgb(120 53 15 / 0.42);
+  --color-amber-200: rgb(146 64 14 / 0.5);
+  --color-amber-500: #fbbf24;
+  --color-amber-600: #fcd34d;
+  --color-amber-700: #fde68a;
+  --color-amber-800: #fef3c7;
+
+  --color-emerald-50: rgb(6 78 59 / 0.32);
+  --color-emerald-100: rgb(6 78 59 / 0.44);
+  --color-emerald-200: rgb(4 120 87 / 0.5);
+  --color-emerald-500: #34d399;
+  --color-emerald-600: #6ee7b7;
+  --color-emerald-700: #a7f3d0;
+  --color-emerald-800: #d1fae5;
+
+  --color-sky-50: rgb(12 74 110 / 0.3);
+  --color-sky-100: rgb(12 74 110 / 0.42);
+  --color-sky-200: rgb(14 116 144 / 0.5);
+  --color-sky-500: #38bdf8;
+  --color-sky-600: #7dd3fc;
+  --color-sky-700: #bae6fd;
+  --color-sky-800: #e0f2fe;
+
+  --color-green-50: rgb(20 83 45 / 0.3);
+  --color-green-100: rgb(20 83 45 / 0.42);
+  --color-green-200: rgb(22 101 52 / 0.5);
+  --color-green-600: #86efac;
+  --color-green-700: #bbf7d0;
+
+  --color-yellow-50: rgb(113 63 18 / 0.3);
+  --color-yellow-100: rgb(113 63 18 / 0.42);
+  --color-yellow-200: rgb(133 77 14 / 0.5);
+  --color-yellow-600: #fde047;
+  --color-yellow-700: #fef08a;
+
+  --color-chart-grid: #2a3d46;
+  --color-chart-axis: #93a7b1;
+  --color-chart-tooltip: #1b2a32;
+  --color-chart-1: #4ec0ab;
+  --color-chart-2: #7dd3fc;
+  --color-chart-3: #6ee7b7;
+  --color-chart-4: #fcd34d;
+  --color-chart-5: #fca5a5;
+  --color-chart-6: #93a7b1;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.24);
+  --shadow-card-hover: 0 6px 16px -6px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.3);
+  --shadow-overlay: 0 24px 48px -24px rgb(0 0 0 / 0.7), 0 10px 24px -16px rgb(0 0 0 / 0.5);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color-scheme: light;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-800);
+  }
+
+  button:not(:disabled),
+  a[href] {
+    cursor: pointer;
+  }
+
+  /* Restrained light scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-subtle);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 2px solid var(--color-subtle);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-faint);
+  }
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-color: var(--color-canvas);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle architectural grid used by auth and landing surfaces. */
+.tf-grid-pattern {
+  background-image:
+    linear-gradient(to right, rgb(15 157 138 / 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(15 157 138 / 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.tf-grid-fade {
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 40%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

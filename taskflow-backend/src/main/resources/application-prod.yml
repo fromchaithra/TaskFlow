@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    # Aiven for MySQL requires TLS encryption (sslMode=REQUIRED or VERIFY_CA)
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslMode=${DB_SSL_MODE:REQUIRED}&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-timeout: 30000
+      max-lifetime: 900000
+      keepalive-time: 60000
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  forward-headers-strategy: framework
+
+taskflow:
+  jwt:
+    cookie-secure: true
+    cookie-same-site: None
+
+logging:
+  level:
+    root: WARN
+    com.taskflow: INFO
+    org.flywaydb: INFO
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

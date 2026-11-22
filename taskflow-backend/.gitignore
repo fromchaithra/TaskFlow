@@ -1,0 +1,19 @@
+# Build output
+target/
+
+# Local secrets (never commit)
+.env
+.env.local
+
+# Runtime storage
+uploads/
+
+# IDE metadata
+.idea/
+.settings/
+*.iml
+.classpath
+.project
+
+# Logs
+*.log

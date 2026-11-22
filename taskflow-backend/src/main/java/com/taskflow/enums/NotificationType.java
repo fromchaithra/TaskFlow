@@ -1,0 +1,17 @@
+package com.taskflow.enums;
+
+public enum NotificationType {
+    TASK_ASSIGNED,
+    TASK_REASSIGNED,
+    TASK_DEADLINE_UPCOMING,
+    TASK_OVERDUE,
+    TASK_REVIEW_REQUESTED,
+    TASK_APPROVED,
+    TASK_REJECTED,
+    BUG_ASSIGNED,
+    BUG_RESOLVED,
+    BUG_VERIFIED,
+    BUG_REOPENED,
+    SPRINT_STARTED,
+    SPRINT_COMPLETED
+}

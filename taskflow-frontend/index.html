@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow — Enterprise Project & Workflow Platform</title>
+    <meta
+      name="description"
+      content="TaskFlow is an enterprise project, sprint, kanban, and bug tracking platform built for engineering organizations."
+    />
+    <meta name="theme-color" content="#0F9D8A" />
+    <script>
+      // Apply the saved theme before the stylesheet paints to avoid a flash of
+      // the wrong theme. Key is shared with ThemeContext.jsx.
+      (function () {
+        try {
+          var saved = localStorage.getItem('taskflow.theme');
+          if (saved === 'dark') document.documentElement.dataset.theme = 'dark';
+        } catch (e) {
+          /* storage unavailable: light remains the default */
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-canvas text-ink antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
