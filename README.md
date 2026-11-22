@@ -37,19 +37,27 @@ The application is designed as a portfolio-grade example of secure Java full-sta
 
 ## Screenshots
 
-> Screenshot placeholders — real captures will be added after final demo cleanup. No generated or simulated screenshots are included.
+Real application captures from the running TaskFlow demo.
 
-| Area | Status |
-|---|---|
-| Login and public registration | Placeholder — screenshot to be added |
-| Admin dashboard with role-based KPI cards | Placeholder — screenshot to be added |
-| Employee dashboard (assigned-project scope) | Placeholder — screenshot to be added |
-| Projects list and project detail | Placeholder — screenshot to be added |
-| Kanban board with task status columns | Placeholder — screenshot to be added |
-| Bug detail and attachments | Placeholder — screenshot to be added |
-| Reports catalog and PDF/XLSX generation | Placeholder — screenshot to be added |
-| Live Analytics with charts and "Live" indicator | Placeholder — screenshot to be added |
-| Dark theme | Placeholder — screenshot to be added |
+**1. Login — organization-scoped authentication**
+
+![TaskFlow login](docs/screenshots/login.png)
+
+**2. Welcome and onboarding — registration and sign-in**
+
+![TaskFlow welcome and onboarding](docs/screenshots/welcome-onboarding.png)
+
+**3. Kanban board — task workflow columns**
+
+![TaskFlow kanban board](docs/screenshots/kanban-board.png)
+
+**4. Live overview — delivery KPIs and task status distribution**
+
+![TaskFlow live overview](docs/screenshots/live-overview.png)
+
+**5. Workspace dashboard — workspace overview and delivery metrics**
+
+![TaskFlow workspace dashboard](docs/screenshots/workspace-dashboard.png)
 
 ---
 
